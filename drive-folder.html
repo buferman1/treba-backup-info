@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex,nofollow">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iakzaxT3q6JL+XA+EWO0/qz0A2dBc1NBjT43ufMp7zI='; style-src 'self' 'sha256-ok0zM7xJkLFpodGQYdVjhGTtOgk4aUrpaNZ0m8E/ixs='; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-h7f9s2/OvziiBY0VfPidvkvLMbNgsr85Us2tkVJ4+IY='; style-src 'self' 'sha256-ok0zM7xJkLFpodGQYdVjhGTtOgk4aUrpaNZ0m8E/ixs='; base-uri 'none'; form-action 'none'; connect-src 'none'">
   <title>Доступ до папки — TREBA Backup Ops</title>
   <link rel="stylesheet" href="./style.css">
   <style>
@@ -16,7 +16,7 @@ label{display:block;font-weight:650;margin:20px 0 8px}input{width:100%;padding:1
   <header><a href="./">TREBA Backup Ops</a></header>
   <main>
     <h1>Дозволити доступ до папки резервування</h1>
-    <p>Одноразове налаштування для власника. Виберіть наявну папку <strong>TREBA backups</strong> у вікні Google.</p>
+    <p><strong>Вибір зі списку папок.</strong> У вікні Google виділіть наявну папку <strong>TREBA backups</strong> і підтвердіть доступ.</p>
     <p class="notice">Вставте лише <strong>Client ID</strong>. Паролі, Client Secret, JSON і токени на цій сторінці не потрібні. Вхід і вибір папки відбудуться на сайті Google.</p>
     <label for="client-id">OAuth Client ID</label>
     <input id="client-id" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…apps.googleusercontent.com" maxlength="256" aria-describedby="client-help">
@@ -27,7 +27,7 @@ label{display:block;font-weight:650;margin:20px 0 8px}input{width:100%;padding:1
     <section id="ready" hidden>
       <p>Буде запитано лише <strong>drive.file</strong> з вибором папки. Після підтвердження Google поверне вас до OAuth Playground.</p>
       <a id="google-link" class="primary" rel="noreferrer">Вибрати папку в Google</a>
-      <p>Виберіть Google-акаунт, у якому зберігається папка <strong>TREBA backups</strong>. Підтвердіть саме цю папку.</p>
+      <p>Виберіть Google-акаунт, у якому зберігається папка <strong>TREBA backups</strong>. Виділіть саме цю папку у списку й натисніть кнопку підтвердження. Якщо відкрився її вміст, поверніться до списку через «Google Диск».</p>
     </section>
     <details>
       <summary>Що зробити після вибору папки</summary>
@@ -62,7 +62,7 @@ label{display:block;font-weight:650;margin:20px 0 8px}input{width:100%;padding:1
   window.history.replaceState(null, '', window.location.pathname
     + (validFolder ? '#' + new URLSearchParams({folder}).toString() : ''));
   if (validFolder) {
-    folderStatus.textContent = 'Наявну папку резервування задано в посиланні.';
+    folderStatus.textContent = 'Оберіть TREBA backups зі списку папок у Google.';
   } else {
     folderStatus.textContent = 'Відкрийте повне посилання для папки з інструкції. Перехід заблоковано.';
     prepare.disabled = true;
@@ -95,8 +95,9 @@ label{display:block;font-weight:650;margin:20px 0 8px}input{width:100%;padding:1
       trigger_onepick: 'true',
       allow_multiple: 'false',
       allow_folder_selection: 'true',
-      mimetypes: 'application/vnd.google-apps.folder',
-      file_ids: folder
+      // Do not pass file_ids: on the observed mobile flow it opened the folder
+      // contents instead of leaving the folder available for selection.
+      mimetypes: 'application/vnd.google-apps.folder'
     }).toString();
     // This page only prepares an owner-initiated navigation to Google's developer
     // tool. It never handles a callback or receives/exchanges authorization codes.
