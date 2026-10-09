@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex,nofollow">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-X08cQ9MF+ee/+gSjdy54g4UNvJqsG7wAMA3bbpiKbsM='; style-src 'self' 'sha256-ok0zM7xJkLFpodGQYdVjhGTtOgk4aUrpaNZ0m8E/ixs='; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iakzaxT3q6JL+XA+EWO0/qz0A2dBc1NBjT43ufMp7zI='; style-src 'self' 'sha256-ok0zM7xJkLFpodGQYdVjhGTtOgk4aUrpaNZ0m8E/ixs='; base-uri 'none'; form-action 'none'; connect-src 'none'">
   <title>Доступ до папки — TREBA Backup Ops</title>
   <link rel="stylesheet" href="./style.css">
   <style>
@@ -58,8 +58,9 @@ label{display:block;font-weight:650;margin:20px 0 8px}input{width:100%;padding:1
   const validFolder = /^[A-Za-z0-9_-]{10,128}$/.test(folder)
     && parameters.getAll('folder').length === 1
     && [...parameters.keys()].every(key => key === 'folder');
-  // Discard query/fragment data before any subsequent user action.
-  window.history.replaceState(null, '', window.location.pathname);
+  // Keep only validated folder metadata so reloading this page remains usable.
+  window.history.replaceState(null, '', window.location.pathname
+    + (validFolder ? '#' + new URLSearchParams({folder}).toString() : ''));
   if (validFolder) {
     folderStatus.textContent = 'Наявну папку резервування задано в посиланні.';
   } else {
