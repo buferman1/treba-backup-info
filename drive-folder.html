@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-X08cQ9MF+ee/+gSjdy54g4UNvJqsG7wAMA3bbpiKbsM='; style-src 'self' 'sha256-ok0zM7xJkLFpodGQYdVjhGTtOgk4aUrpaNZ0m8E/ixs='; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <title>Доступ до папки — TREBA Backup Ops</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+label{display:block;font-weight:650;margin:20px 0 8px}input{width:100%;padding:14px;border:1px solid #718c79;border-radius:8px;background:#fff;color:#172b24;font:16px system-ui}button,.primary{display:inline-block;padding:14px 20px;margin-top:18px;border:0;border-radius:8px;background:#126244;color:#fff;font:600 17px system-ui;cursor:pointer;text-decoration:none}.notice{padding:16px;border-left:4px solid #126244;background:#e7f4e9}.error{color:#922d27}small{display:block;font-size:15px}button:focus-visible,input:focus-visible{outline:3px solid #2c8b55;outline-offset:3px}[hidden]{display:none!important}li{margin:12px 0}
+  </style>
+</head>
+<body>
+  <header><a href="./">TREBA Backup Ops</a></header>
+  <main>
+    <h1>Дозволити доступ до папки резервування</h1>
+    <p>Одноразове налаштування для власника. Виберіть наявну папку <strong>TREBA backups</strong> у вікні Google.</p>
+    <p class="notice">Вставте лише <strong>Client ID</strong>. Паролі, Client Secret, JSON і токени на цій сторінці не потрібні. Вхід і вибір папки відбудуться на сайті Google.</p>
+    <label for="client-id">OAuth Client ID</label>
+    <input id="client-id" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…apps.googleusercontent.com" maxlength="256" aria-describedby="client-help">
+    <small id="client-help">Значення client_id з наявного OAuth-клієнта TREBA Backup Ops.</small>
+    <p id="folder-status" role="status"></p>
+    <button id="prepare" type="button">Підготувати перехід до Google</button>
+    <p id="error" class="error" role="alert"></p>
+    <section id="ready" hidden>
+      <p>Буде запитано лише <strong>drive.file</strong> з вибором папки. Після підтвердження Google поверне вас до OAuth Playground.</p>
+      <a id="google-link" class="primary" rel="noreferrer">Вибрати папку в Google</a>
+      <p>Виберіть Google-акаунт, у якому зберігається папка <strong>TREBA backups</strong>. Підтвердіть саме цю папку.</p>
+    </section>
+    <details>
+      <summary>Що зробити після вибору папки</summary>
+      <ol>
+        <li>У OAuth Playground перевірте, що в ⚙️ увімкнено <strong>Use your own OAuth credentials</strong> і вказано той самий клієнт.</li>
+        <li>Натисніть <strong>Exchange authorization code for tokens</strong>.</li>
+        <li>Новий <strong>Refresh token</strong> збережіть у вже наявному GitHub Secret <strong>TREBA_DRIVE_REFRESH_TOKEN</strong>.</li>
+      </ol>
+      <p>Успішний вибір папки ще потребує перевірки доступу. Ця сторінка не запускає резервування.</p>
+    </details>
+    <noscript><p>Для підготовки переходу увімкніть JavaScript у Chrome.</p></noscript>
+  </main>
+  <footer>Сторінка не зберігає введені дані й не обмінює коди на токени. <a href="./privacy.html">Конфіденційність</a></footer>
+  <script>
+'use strict';
+(() => {
+  const projectNumber = '742736527146';
+  const expectedSuffix = '.apps.googleusercontent.com';
+  const input = document.getElementById('client-id');
+  const prepare = document.getElementById('prepare');
+  const ready = document.getElementById('ready');
+  const link = document.getElementById('google-link');
+  const error = document.getElementById('error');
+  const folderStatus = document.getElementById('folder-status');
+  // Folder metadata arrives only in the URL fragment, never in an HTTP request.
+  const parameters = new URLSearchParams(window.location.hash.slice(1));
+  const folder = parameters.get('folder') || '';
+  const validFolder = /^[A-Za-z0-9_-]{10,128}$/.test(folder)
+    && parameters.getAll('folder').length === 1
+    && [...parameters.keys()].every(key => key === 'folder');
+  // Discard query/fragment data before any subsequent user action.
+  window.history.replaceState(null, '', window.location.pathname);
+  if (validFolder) {
+    folderStatus.textContent = 'Наявну папку резервування задано в посиланні.';
+  } else {
+    folderStatus.textContent = 'Відкрийте повне посилання для папки з інструкції. Перехід заблоковано.';
+    prepare.disabled = true;
+  }
+  const reset = () => {
+    ready.hidden = true;
+    link.removeAttribute('href');
+    error.textContent = '';
+  };
+  input.addEventListener('input', reset);
+  prepare.addEventListener('click', () => {
+    reset();
+    if (!validFolder) return;
+    const client = input.value.trim();
+    const prefix = projectNumber + '-';
+    if (!client.startsWith(prefix) || !client.endsWith(expectedSuffix)
+        || !/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(client)) {
+      error.textContent = 'Потрібен Client ID наявного проєкту TREBA Backup Ops. Він закінчується на .apps.googleusercontent.com.';
+      return;
+    }
+    const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    url.search = new URLSearchParams({
+      client_id: client,
+      redirect_uri: 'https://developers.google.com/oauthplayground',
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      access_type: 'offline',
+      include_granted_scopes: 'false',
+      prompt: 'consent',
+      trigger_onepick: 'true',
+      allow_multiple: 'false',
+      allow_folder_selection: 'true',
+      mimetypes: 'application/vnd.google-apps.folder',
+      file_ids: folder
+    }).toString();
+    // This page only prepares an owner-initiated navigation to Google's developer
+    // tool. It never handles a callback or receives/exchanges authorization codes.
+    link.href = url.href;
+    ready.hidden = false;
+  });
+})();
+  </script>
+</body>
+</html>
